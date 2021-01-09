@@ -15,7 +15,7 @@ struct CruiseState: Equatable {
 
 enum CruiseAction: Equatable {
     static func == (lhs: CruiseAction, rhs: CruiseAction) -> Bool {
-        return true //TODO: lhs.self == rhs.self ?
+        return true
     }
     
     case navigateHorizontal(CGFloat)
@@ -58,22 +58,22 @@ let cruiseReducer = Reducer<CruiseState, CruiseAction, CruiseEnvironment> {
         
         //TODO: Implement endpoint to pass normalized value between -1, 1
 
-        environment.apiClient
+        return environment.apiClient
             .left()
             .receive(on: environment.mainQueue)
             .catchToEffect()
-        return .none
+            .map(CruiseAction.navigateHorizontalResponse)
     
     case let .navigateVertical(distance):
         state.verticalJoystick.navigationRequestInFlight = true
             
         //TODO: Implement endpoint to pass normalized value between -1, 1
     
-        environment.apiClient
-            .left()
+        return environment.apiClient
+            .right()
             .receive(on: environment.mainQueue)
             .catchToEffect()
-        return .none
+            .map(CruiseAction.navigateVerticalResponse)
     }
 }
 

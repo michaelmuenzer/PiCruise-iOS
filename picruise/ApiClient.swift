@@ -15,53 +15,36 @@ struct ApiClient {
 extension ApiClient {
   static let live = ApiClient(
     left: {
-        //TODO: Fix Effect usage. Somehow does not work with AF
-        //Effect.future { callback in
+        Effect.future { callback in
             AF.request("\(api)/left", method: .post)
                 .validate(statusCode: 200..<300)
                 .response { response in
-                    debugPrint(response)
+                    //debugPrint(response)
                     switch response.result {
                         case .success:
-                            print("Validation Successful")
-                            //callback(.success(Void()))
-                        case let .failure(error):
-                            print(error)
-                            //callback(.failure(Failure()))
-                        }
-                }
-        //}
-        
-        return Effect.future { callback in
-            callback(.failure(Failure()))
-        }
-        
-        /*Effect.future { (callback) in
-            AF.request("\(api)/left", method: .post)
-                .validate(statusCode: 200..<300)
-                .response { response in
-                    debugPrint(response)
-                    switch response.result {
-                        case .success:
-                            print("Validation Successful")
+                            //print("Request Successful")
                             callback(.success(Void()))
                         case let .failure(error):
-                            print(error)
-                            //callback(.failure(error))
+                            //print(error)
+                            callback(.failure(Failure()))
                         }
                 }
-        }*/
+        }
     },
     right: {
         Effect.future { (callback) in
             AF.request("\(api)/right", method: .post)
+                .validate(statusCode: 200..<300)
                 .response { response in
-                    debugPrint(response)
-                    /*if response {
-                        callback(.success(WishListResponse(data: results)))
-                    } else {
-                        callback(.failure(.requestFailure))
-                    }*/
+                    //debugPrint(response)
+                    switch response.result {
+                        case .success:
+                            //print("Request Successful")
+                            callback(.success(Void()))
+                        case let .failure(error):
+                            //print(error)
+                            callback(.failure(Failure()))
+                        }
                 }
         }
     })
