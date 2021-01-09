@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		62455BFB25A1F8D8004209C8 /* ComposableArchitecture in Frameworks */ = {isa = PBXBuildFile; productRef = 62455BFA25A1F8D8004209C8 /* ComposableArchitecture */; };
+		62455BFE25A1F946004209C8 /* ApiClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62455BFD25A1F946004209C8 /* ApiClient.swift */; };
 		62C5616B25A1EF9F00A8AE38 /* picruiseApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62C5616A25A1EF9F00A8AE38 /* picruiseApp.swift */; };
 		62C5616D25A1EF9F00A8AE38 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62C5616C25A1EF9F00A8AE38 /* ContentView.swift */; };
 		62C5616F25A1EFA200A8AE38 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 62C5616E25A1EFA200A8AE38 /* Assets.xcassets */; };
@@ -16,6 +18,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		62455BFD25A1F946004209C8 /* ApiClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApiClient.swift; sourceTree = "<group>"; };
 		62C5616725A1EF9F00A8AE38 /* picruise.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = picruise.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		62C5616A25A1EF9F00A8AE38 /* picruiseApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = picruiseApp.swift; sourceTree = "<group>"; };
 		62C5616C25A1EF9F00A8AE38 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -30,6 +33,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				62455BFB25A1F8D8004209C8 /* ComposableArchitecture in Frameworks */,
 				62C5618325A1F0DF00A8AE38 /* Alamofire in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -63,6 +67,7 @@
 				62C5617A25A1EFDA00A8AE38 /* MjpegWebView.swift */,
 				62C5617325A1EFA200A8AE38 /* Info.plist */,
 				62C5617025A1EFA200A8AE38 /* Preview Content */,
+				62455BFD25A1F946004209C8 /* ApiClient.swift */,
 			);
 			path = picruise;
 			sourceTree = "<group>";
@@ -100,6 +105,7 @@
 			name = picruise;
 			packageProductDependencies = (
 				62C5618225A1F0DF00A8AE38 /* Alamofire */,
+				62455BFA25A1F8D8004209C8 /* ComposableArchitecture */,
 			);
 			productName = picruise;
 			productReference = 62C5616725A1EF9F00A8AE38 /* picruise.app */;
@@ -130,6 +136,7 @@
 			mainGroup = 62C5615E25A1EF9F00A8AE38;
 			packageReferences = (
 				62C5618125A1F0DF00A8AE38 /* XCRemoteSwiftPackageReference "Alamofire" */,
+				62455BF925A1F8D8004209C8 /* XCRemoteSwiftPackageReference "swift-composable-architecture" */,
 			);
 			productRefGroup = 62C5616825A1EF9F00A8AE38 /* Products */;
 			projectDirPath = "";
@@ -160,6 +167,7 @@
 				62C5616D25A1EF9F00A8AE38 /* ContentView.swift in Sources */,
 				62C5616B25A1EF9F00A8AE38 /* picruiseApp.swift in Sources */,
 				62C5617B25A1EFDA00A8AE38 /* MjpegWebView.swift in Sources */,
+				62455BFE25A1F946004209C8 /* ApiClient.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -348,6 +356,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		62455BF925A1F8D8004209C8 /* XCRemoteSwiftPackageReference "swift-composable-architecture" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/pointfreeco/swift-composable-architecture";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.9.0;
+			};
+		};
 		62C5618125A1F0DF00A8AE38 /* XCRemoteSwiftPackageReference "Alamofire" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/Alamofire/Alamofire.git";
@@ -359,6 +375,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		62455BFA25A1F8D8004209C8 /* ComposableArchitecture */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 62455BF925A1F8D8004209C8 /* XCRemoteSwiftPackageReference "swift-composable-architecture" */;
+			productName = ComposableArchitecture;
+		};
 		62C5618225A1F0DF00A8AE38 /* Alamofire */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 62C5618125A1F0DF00A8AE38 /* XCRemoteSwiftPackageReference "Alamofire" */;

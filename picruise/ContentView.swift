@@ -1,57 +1,143 @@
+import ComposableArchitecture
 import SwiftUI
-import Alamofire
 
 let host = "http://raspberrypi.local"
 
+// MARK: - Domain
+struct CruiseState: Equatable {
+    static func == (lhs: CruiseState, rhs: CruiseState) -> Bool {
+        return lhs.horizontalJoystick == rhs.horizontalJoystick && lhs.verticalJoystick == rhs.verticalJoystick
+    }
+    
+    var horizontalJoystick : JoystickState
+    var verticalJoystick : JoystickState
+}
+
+enum CruiseAction: Equatable {
+    static func == (lhs: CruiseAction, rhs: CruiseAction) -> Bool {
+        return true //TODO: lhs.self == rhs.self ?
+    }
+    
+    case navigateHorizontal(CGFloat)
+    case navigateHorizontalResponse(Result<Void, ApiClient.Failure>)
+    
+    case navigateVertical(CGFloat)
+    case navigateVerticalResponse(Result<Void, ApiClient.Failure>)
+}
+
+struct CruiseEnvironment {
+    var apiClient: ApiClient
+    var mainQueue: AnySchedulerOf<DispatchQueue>
+}
+
+// MARK: - Reducer
+let cruiseReducer = Reducer<CruiseState, CruiseAction, CruiseEnvironment> {
+    state, action, environment in
+    switch action {
+    
+    case let .navigateHorizontalResponse(.success(response)):
+        state.horizontalJoystick.navigationRequestInFlight = false
+        return .none
+      
+    case .navigateHorizontalResponse(.failure):
+        state.horizontalJoystick.navigationRequestInFlight = false
+        //TODO: Implement UI element indicating that the server connection broke
+        return .none
+
+    case let .navigateVerticalResponse(.success(response)):
+        state.verticalJoystick.navigationRequestInFlight = false
+        return .none
+
+    case .navigateVerticalResponse(.failure):
+        state.verticalJoystick.navigationRequestInFlight = false
+        //TODO: Implement UI element indicating that the server connection broke
+        return .none
+
+    case let .navigateHorizontal(distance):
+        state.horizontalJoystick.navigationRequestInFlight = true
+        
+        //TODO: Implement endpoint to pass normalized value between -1, 1
+
+        environment.apiClient
+            .left()
+            .receive(on: environment.mainQueue)
+            .catchToEffect()
+        return .none
+    
+    case let .navigateVertical(distance):
+        state.verticalJoystick.navigationRequestInFlight = true
+            
+        //TODO: Implement endpoint to pass normalized value between -1, 1
+    
+        environment.apiClient
+            .left()
+            .receive(on: environment.mainQueue)
+            .catchToEffect()
+        return .none
+    }
+}
+
+//MARK: - UI Joystick
 enum Direction {
     case vertical
     case horizontal
 }
 
-class JoystickViewModel : ObservableObject{
+struct JoystickState : Equatable{
     let direction: Direction
-    let maxDistance: CGFloat
-    @Published var draggedOffset: CGSize = .zero
-    
-    init(direction: Direction, maxDistance: CGFloat) {
-        self.direction = direction
-        self.maxDistance = maxDistance
-    }
+    var draggedOffset: CGFloat = .zero
+    var navigationRequestInFlight: Bool = false
 }
 
 struct DraggableModifier : ViewModifier {
-    @ObservedObject var viewModel: JoystickViewModel
+    let viewStore: ViewStore<CruiseState, CruiseAction>
+    let direction: Direction //TODO: Can this be replaced by viewStore?
+    let maxDistance: CGFloat
+    
+    @State var draggedOffset: CGSize = .zero //TODO: Can this be replaced by viewStore?
 
     func body(content: Content) -> some View {
         content
         .offset(
-            CGSize(width: viewModel.direction == .vertical ?
-                    0 : max(-viewModel.maxDistance, min(viewModel.maxDistance, viewModel.draggedOffset.width)),
+            CGSize(width: direction == .vertical ?
+                    0 : max(-maxDistance, min(maxDistance, draggedOffset.width)),
                    
-                   height: viewModel.direction == .horizontal ?
-                    0 : max(-viewModel.maxDistance, min(viewModel.maxDistance, viewModel.draggedOffset.height))
+                   height: direction == .horizontal ?
+                    0 : max(-maxDistance, min(maxDistance, draggedOffset.height))
             )
         )
         .gesture(
             DragGesture()
             .onChanged { value in
-                self.viewModel.draggedOffset = value.translation
-                /*if(self.viewModel.draggedOffset < 0) {
-                    AF.request("\(host)/left", method: .post)
-                } else {*/
-                let api = "\(host):8082"
-                AF.request("\(api)/right", method: .post).response { response in debugPrint(response)
+                self.draggedOffset = value.translation
+                
+                var distance : CGFloat = 0
+                if direction == Direction.horizontal {
+                    distance = draggedOffset.width
+                    viewStore.send(CruiseAction.navigateHorizontal(distance))
+                } else {
+                    distance = draggedOffset.height
+                    viewStore.send(CruiseAction.navigateVertical(distance))
                 }
-                //}
+                
             }
             .onEnded { value in
-                self.viewModel.draggedOffset = .zero
+                self.draggedOffset = .zero
+                
+                if direction == Direction.horizontal {
+                    viewStore.send(CruiseAction.navigateHorizontal(.zero))
+                } else {
+                    viewStore.send(CruiseAction.navigateVertical(.zero))
+                }
             }
         )
     }
 }
 
+// MARK: - UI
 struct ContentView: View {
+    let store: Store<CruiseState, CruiseAction>
+    
     let joystickRectangleLong: CGFloat = 200
     let joystickRectangleShort: CGFloat = 50
     let joystickPadding: CGFloat = 10
@@ -60,61 +146,70 @@ struct ContentView: View {
     var joystickMaxDragDistance: CGFloat
     
     var videoStream = host + ":8080/stream/video.mjpeg"
-    @ObservedObject var leftJoystick : JoystickViewModel
-    @ObservedObject var rightJoystick : JoystickViewModel
 
-    init() {
+    init(store: Store<CruiseState, CruiseAction>) {
+        self.store = store
+        
         joystickDiameter = joystickRectangleShort - joystickPadding
         joystickMaxDragDistance = (joystickRectangleLong-joystickDiameter-joystickPadding)/2
-        
-        leftJoystick = JoystickViewModel(
-               direction: Direction.horizontal,
-               maxDistance: joystickMaxDragDistance)
-        
-        rightJoystick = JoystickViewModel(
-               direction: Direction.vertical,
-               maxDistance: joystickMaxDragDistance)
     }
     
     var body: some View {
-        ZStack {
-            MjpegWebView(url: videoStream)
-                .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
-                .edgesIgnoringSafeArea(.all)
-            HStack(alignment: .center) {
-                ZStack(alignment: .center) {
-                    RoundedRectangle(cornerRadius: joystickRectangleShort / 2, style: .continuous)
-                        .fill(Color.black)
-                        .frame(width: joystickRectangleLong, height: joystickRectangleShort)
-                    Circle()
-                        .fill(Color.blue)
-                        .frame(width: joystickDiameter, height: joystickDiameter)
-                        .modifier(DraggableModifier(viewModel: leftJoystick))
+        WithViewStore(self.store) { viewStore in
+            ZStack {
+                MjpegWebView(url: videoStream)
+                    .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
+                    .edgesIgnoringSafeArea(.all)
+                HStack(alignment: .center) {
+                    ZStack(alignment: .center) {
+                        RoundedRectangle(cornerRadius: joystickRectangleShort / 2, style: .continuous)
+                            .fill(Color.black)
+                            .frame(width: joystickRectangleLong, height: joystickRectangleShort)
+                        Circle()
+                            .fill(Color.blue)
+                            .frame(width: joystickDiameter, height: joystickDiameter)
+                            .modifier(DraggableModifier(viewStore: viewStore, direction: Direction.horizontal, maxDistance: joystickMaxDragDistance))
+                    }
+                    .frame(maxWidth: .infinity, alignment: .bottomLeading)
+                    
+                    ZStack(alignment: .center) {
+                        RoundedRectangle(cornerRadius: joystickRectangleShort / 2, style: .continuous)
+                            .fill(Color.black)
+                            .frame(width: joystickRectangleShort, height: joystickRectangleLong)
+                        Circle()
+                            .fill(Color.blue)
+                            .frame(width: joystickDiameter, height: joystickDiameter)
+                            .modifier(DraggableModifier(viewStore: viewStore, direction: Direction.vertical, maxDistance: joystickMaxDragDistance))
+                    }
+                    .frame(maxWidth: .infinity, alignment: .bottomTrailing)
+                    .padding(.trailing, joystickRectangleLong/4)
                 }
-                .frame(maxWidth: .infinity, alignment: .bottomLeading)
-                
-                ZStack(alignment: .center) {
-                    RoundedRectangle(cornerRadius: joystickRectangleShort / 2, style: .continuous)
-                        .fill(Color.black)
-                        .frame(width: joystickRectangleShort, height: joystickRectangleLong)
-                    Circle()
-                        .fill(Color.blue)
-                        .frame(width: joystickDiameter, height: joystickDiameter)
-                        .modifier(DraggableModifier(viewModel: rightJoystick))
-                }
-                .frame(maxWidth: .infinity, alignment: .bottomTrailing)
-                .padding(.trailing, joystickRectangleLong/4)
+                .frame(maxHeight: .infinity, alignment: .bottom)
+                .padding()
             }
-            .frame(maxHeight: .infinity, alignment: .bottom)
-            .padding()
         }
     }
 }
 
+// MARK: - UI Preview
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
+        let leftJoystick = JoystickState(direction: Direction.horizontal)
+        let rightJoystick = JoystickState(direction: Direction.vertical)
+        
+        let store = Store(
+            initialState: CruiseState(
+                horizontalJoystick: leftJoystick,
+                verticalJoystick: rightJoystick),
+            reducer: cruiseReducer,
+            environment: CruiseEnvironment(
+                apiClient: ApiClient.live,
+                mainQueue: DispatchQueue.main.eraseToAnyScheduler()
+            )
+        )
+        
         Group {
-            ContentView()
+            ContentView(store: store)
                 .previewLayout(.fixed(width: 1024, height: 768))
         } // iPad mini
     }
