@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		624481D625B3352000EDF426 /* Starscream in Frameworks */ = {isa = PBXBuildFile; productRef = 624481D525B3352000EDF426 /* Starscream */; };
 		62455BFB25A1F8D8004209C8 /* ComposableArchitecture in Frameworks */ = {isa = PBXBuildFile; productRef = 62455BFA25A1F8D8004209C8 /* ComposableArchitecture */; };
 		62455BFE25A1F946004209C8 /* ApiClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62455BFD25A1F946004209C8 /* ApiClient.swift */; };
 		62C5616B25A1EF9F00A8AE38 /* picruiseApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62C5616A25A1EF9F00A8AE38 /* picruiseApp.swift */; };
@@ -35,6 +36,7 @@
 			files = (
 				62455BFB25A1F8D8004209C8 /* ComposableArchitecture in Frameworks */,
 				62C5618325A1F0DF00A8AE38 /* Alamofire in Frameworks */,
+				624481D625B3352000EDF426 /* Starscream in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -106,6 +108,7 @@
 			packageProductDependencies = (
 				62C5618225A1F0DF00A8AE38 /* Alamofire */,
 				62455BFA25A1F8D8004209C8 /* ComposableArchitecture */,
+				624481D525B3352000EDF426 /* Starscream */,
 			);
 			productName = picruise;
 			productReference = 62C5616725A1EF9F00A8AE38 /* picruise.app */;
@@ -137,6 +140,7 @@
 			packageReferences = (
 				62C5618125A1F0DF00A8AE38 /* XCRemoteSwiftPackageReference "Alamofire" */,
 				62455BF925A1F8D8004209C8 /* XCRemoteSwiftPackageReference "swift-composable-architecture" */,
+				624481D425B3352000EDF426 /* XCRemoteSwiftPackageReference "Starscream" */,
 			);
 			productRefGroup = 62C5616825A1EF9F00A8AE38 /* Products */;
 			projectDirPath = "";
@@ -356,6 +360,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		624481D425B3352000EDF426 /* XCRemoteSwiftPackageReference "Starscream" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/daltoniam/Starscream.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 4.0.4;
+			};
+		};
 		62455BF925A1F8D8004209C8 /* XCRemoteSwiftPackageReference "swift-composable-architecture" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/pointfreeco/swift-composable-architecture";
@@ -375,6 +387,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		624481D525B3352000EDF426 /* Starscream */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 624481D425B3352000EDF426 /* XCRemoteSwiftPackageReference "Starscream" */;
+			productName = Starscream;
+		};
 		62455BFA25A1F8D8004209C8 /* ComposableArchitecture */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 62455BF925A1F8D8004209C8 /* XCRemoteSwiftPackageReference "swift-composable-architecture" */;

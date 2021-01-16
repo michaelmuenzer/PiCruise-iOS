@@ -9,14 +9,20 @@ struct CruiseState: Equatable {
         return lhs.horizontalJoystick == rhs.horizontalJoystick && lhs.verticalJoystick == rhs.verticalJoystick
     }
     
-    var horizontalJoystick : JoystickState
-    var verticalJoystick : JoystickState
+    var horizontalJoystick: JoystickState
+    var verticalJoystick: JoystickState
+    
+    var isConnected: Bool = false
+    var connectionRequestInFlight: Bool = false
 }
 
 enum CruiseAction: Equatable {
     static func == (lhs: CruiseAction, rhs: CruiseAction) -> Bool {
         return true
     }
+    
+    case connect(Void)
+    case connectResponse(Result<Void, ApiClient.Failure>)
     
     case navigateHorizontal(CGFloat)
     case navigateHorizontalResponse(Result<Void, ApiClient.Failure>)
@@ -35,24 +41,23 @@ let cruiseReducer = Reducer<CruiseState, CruiseAction, CruiseEnvironment> {
     state, action, environment in
     switch action {
     
-    case let .navigateHorizontalResponse(.success(response)):
-        state.horizontalJoystick.navigationRequestInFlight = false
+    case let .connect(Void):
+        state.connectionRequestInFlight = true
+        
+        return environment.apiClient
+            .connect()
+            .receive(on: environment.mainQueue)
+            .catchToEffect()
+            .map(CruiseAction.connectResponse)
+    
+    case let .connectResponse(.success(response)):
+        state.connectionRequestInFlight = false
         return .none
-      
-    case .navigateHorizontalResponse(.failure):
-        state.horizontalJoystick.navigationRequestInFlight = false
-        //TODO: Implement UI element indicating that the server connection broke
+    
+    case .connectResponse(.failure):
+        state.connectionRequestInFlight = false
         return .none
-
-    case let .navigateVerticalResponse(.success(response)):
-        state.verticalJoystick.navigationRequestInFlight = false
-        return .none
-
-    case .navigateVerticalResponse(.failure):
-        state.verticalJoystick.navigationRequestInFlight = false
-        //TODO: Implement UI element indicating that the server connection broke
-        return .none
-
+        
     case let .navigateHorizontal(distance):
         state.horizontalJoystick.navigationRequestInFlight = true
         
@@ -64,6 +69,15 @@ let cruiseReducer = Reducer<CruiseState, CruiseAction, CruiseEnvironment> {
             .catchToEffect()
             .map(CruiseAction.navigateHorizontalResponse)
     
+    case let .navigateHorizontalResponse(.success(response)):
+        state.horizontalJoystick.navigationRequestInFlight = false
+        return .none
+      
+    case .navigateHorizontalResponse(.failure):
+        state.horizontalJoystick.navigationRequestInFlight = false
+        //TODO: Implement UI element indicating that the server connection broke
+        return .none
+
     case let .navigateVertical(distance):
         state.verticalJoystick.navigationRequestInFlight = true
             
@@ -74,6 +88,15 @@ let cruiseReducer = Reducer<CruiseState, CruiseAction, CruiseEnvironment> {
             .receive(on: environment.mainQueue)
             .catchToEffect()
             .map(CruiseAction.navigateVerticalResponse)
+    
+    case let .navigateVerticalResponse(.success(response)):
+        state.verticalJoystick.navigationRequestInFlight = false
+        return .none
+
+    case .navigateVerticalResponse(.failure):
+        state.verticalJoystick.navigationRequestInFlight = false
+        //TODO: Implement UI element indicating that the server connection broke
+        return .none
     }
 }
 
@@ -160,32 +183,42 @@ struct ContentView: View {
                 MjpegWebView(url: videoStream)
                     .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
                     .edgesIgnoringSafeArea(.all)
-                HStack(alignment: .center) {
-                    ZStack(alignment: .center) {
-                        RoundedRectangle(cornerRadius: joystickRectangleShort / 2, style: .continuous)
-                            .fill(Color.black)
-                            .frame(width: joystickRectangleLong, height: joystickRectangleShort)
-                        Circle()
-                            .fill(Color.blue)
-                            .frame(width: joystickDiameter, height: joystickDiameter)
-                            .modifier(DraggableModifier(viewStore: viewStore, direction: Direction.horizontal, maxDistance: joystickMaxDragDistance))
+                VStack(alignment: .center) {
+                    HStack(alignment: .center) {
+                        Button(viewStore.isConnected ? "Disconnect" : "Connect") { /*viewStore.send(.connect(nil))*/ }
+                            .disabled(viewStore.connectionRequestInFlight)
+                            .padding()
+                        Text(viewStore.isConnected ? "Connected" : (viewStore.connectionRequestInFlight ? "Connecting..." : "Disconnected"))
+                            .foregroundColor(viewStore.isConnected ? .green : (viewStore.connectionRequestInFlight ? .blue : .red))
+                            .padding()
                     }
-                    .frame(maxWidth: .infinity, alignment: .bottomLeading)
-                    
-                    ZStack(alignment: .center) {
-                        RoundedRectangle(cornerRadius: joystickRectangleShort / 2, style: .continuous)
-                            .fill(Color.black)
-                            .frame(width: joystickRectangleShort, height: joystickRectangleLong)
-                        Circle()
-                            .fill(Color.blue)
-                            .frame(width: joystickDiameter, height: joystickDiameter)
-                            .modifier(DraggableModifier(viewStore: viewStore, direction: Direction.vertical, maxDistance: joystickMaxDragDistance))
+                    HStack(alignment: .center) {
+                        ZStack(alignment: .center) {
+                            RoundedRectangle(cornerRadius: joystickRectangleShort / 2, style: .continuous)
+                                .fill(Color.black)
+                                .frame(width: joystickRectangleLong, height: joystickRectangleShort)
+                            Circle()
+                                .fill(Color.blue)
+                                .frame(width: joystickDiameter, height: joystickDiameter)
+                                .modifier(DraggableModifier(viewStore: viewStore, direction: Direction.horizontal, maxDistance: joystickMaxDragDistance))
+                        }
+                        .frame(maxWidth: .infinity, alignment: .bottomLeading)
+                        
+                        ZStack(alignment: .center) {
+                            RoundedRectangle(cornerRadius: joystickRectangleShort / 2, style: .continuous)
+                                .fill(Color.black)
+                                .frame(width: joystickRectangleShort, height: joystickRectangleLong)
+                            Circle()
+                                .fill(Color.blue)
+                                .frame(width: joystickDiameter, height: joystickDiameter)
+                                .modifier(DraggableModifier(viewStore: viewStore, direction: Direction.vertical, maxDistance: joystickMaxDragDistance))
+                        }
+                        .frame(maxWidth: .infinity, alignment: .bottomTrailing)
+                        .padding(.trailing, joystickRectangleLong/4)
                     }
-                    .frame(maxWidth: .infinity, alignment: .bottomTrailing)
-                    .padding(.trailing, joystickRectangleLong/4)
+                    .frame(maxHeight: .infinity, alignment: .bottom)
+                    .padding()
                 }
-                .frame(maxHeight: .infinity, alignment: .bottom)
-                .padding()
             }
         }
     }
