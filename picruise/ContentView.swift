@@ -1,8 +1,6 @@
 import ComposableArchitecture
 import SwiftUI
 
-let host = "http://raspberrypi.local"
-
 // MARK: - Domain
 struct CruiseState: Equatable {
     static func == (lhs: CruiseState, rhs: CruiseState) -> Bool {
@@ -21,13 +19,15 @@ enum CruiseAction: Equatable {
         return true
     }
     
-    case connect(Void)
+    case connect
     case connectResponse(Result<Void, ApiClient.Failure>)
     
-    case navigateHorizontal(CGFloat)
+    //TODO: Add disconnect
+    
+    case navigateHorizontal(Float)
     case navigateHorizontalResponse(Result<Void, ApiClient.Failure>)
     
-    case navigateVertical(CGFloat)
+    case navigateVertical(Float)
     case navigateVerticalResponse(Result<Void, ApiClient.Failure>)
 }
 
@@ -41,7 +41,7 @@ let cruiseReducer = Reducer<CruiseState, CruiseAction, CruiseEnvironment> {
     state, action, environment in
     switch action {
     
-    case let .connect(Void):
+    case .connect:
         state.connectionRequestInFlight = true
         
         return environment.apiClient
@@ -61,10 +61,11 @@ let cruiseReducer = Reducer<CruiseState, CruiseAction, CruiseEnvironment> {
     case let .navigateHorizontal(distance):
         state.horizontalJoystick.navigationRequestInFlight = true
         
-        //TODO: Implement endpoint to pass normalized value between -1, 1
-
+        //TODO: Normalize distance
+        var normalizedAngle = distance
+        
         return environment.apiClient
-            .left()
+            .angle(normalizedAngle)
             .receive(on: environment.mainQueue)
             .catchToEffect()
             .map(CruiseAction.navigateHorizontalResponse)
@@ -81,10 +82,11 @@ let cruiseReducer = Reducer<CruiseState, CruiseAction, CruiseEnvironment> {
     case let .navigateVertical(distance):
         state.verticalJoystick.navigationRequestInFlight = true
             
-        //TODO: Implement endpoint to pass normalized value between -1, 1
+        //TODO: Normalize speed
+        var normalizedSpeed = distance
     
         return environment.apiClient
-            .right()
+            .speed(normalizedSpeed)
             .receive(on: environment.mainQueue)
             .catchToEffect()
             .map(CruiseAction.navigateVerticalResponse)
@@ -137,10 +139,10 @@ struct DraggableModifier : ViewModifier {
                 var distance : CGFloat = 0
                 if direction == Direction.horizontal {
                     distance = draggedOffset.width
-                    viewStore.send(CruiseAction.navigateHorizontal(distance))
+                    viewStore.send(CruiseAction.navigateHorizontal(Float(distance)))
                 } else {
                     distance = draggedOffset.height
-                    viewStore.send(CruiseAction.navigateVertical(distance))
+                    viewStore.send(CruiseAction.navigateVertical(Float(distance)))
                 }
                 
             }
@@ -168,7 +170,7 @@ struct ContentView: View {
     var joystickDiameter: CGFloat
     var joystickMaxDragDistance: CGFloat
     
-    var videoStream = host + ":8080/stream/video.mjpeg"
+    let videoStream = "http://raspberrypi.local:8080/stream/video.mjpeg"
 
     init(store: Store<CruiseState, CruiseAction>) {
         self.store = store
@@ -185,7 +187,7 @@ struct ContentView: View {
                     .edgesIgnoringSafeArea(.all)
                 VStack(alignment: .center) {
                     HStack(alignment: .center) {
-                        Button(viewStore.isConnected ? "Disconnect" : "Connect") { /*viewStore.send(.connect(nil))*/ }
+                        Button(viewStore.isConnected ? "Disconnect" : "Connect") { viewStore.send(.connect) }
                             .disabled(viewStore.connectionRequestInFlight)
                             .padding()
                         Text(viewStore.isConnected ? "Connected" : (viewStore.connectionRequestInFlight ? "Connecting..." : "Disconnected"))

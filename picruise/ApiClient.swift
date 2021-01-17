@@ -1,16 +1,16 @@
 import Foundation
 import Alamofire
 import ComposableArchitecture
-import Starscream
 
-let api = "http://raspberrypi.local:8082"
-let wsApi = "http://raspberrypi.local:3002"
+let wsApi = "ws://raspberrypi.local:3002"
 
 struct ApiClient {
+    static let socket = WebSocketConnector(withSocketURL: URL(string: wsApi)!)
+    
     var connect: () -> Effect<Void, Failure>
     var disconnect: () -> Effect<Void, Failure>
-    var left: () -> Effect<Void, Failure>
-    var right: () -> Effect<Void, Failure>
+    var angle: (_: Float) -> Effect<Void, Failure>
+    var speed: (_: Float) -> Effect<Void, Failure>
 
     struct Failure: Error, Equatable {}
 }
@@ -19,82 +19,47 @@ struct ApiClient {
 extension ApiClient {
     static let live = ApiClient(
     connect: {
-        /*var request = URLRequest(url: URL(string: wsApi)!)
-        request.timeoutInterval = 5
+        socket.establishConnection()
+                
+        socket.didReceiveMessage = { message in
+            print(message)
+        }
         
-        var socket = WebSocket(request: request)
-        socket.delegate = self
-        socket.connect()*/
+        socket.didReceiveError = { error in
+            //Handle error here
+        }
         
-        Effect.future { callback in
-            AF.request("\(api)/left", method: .post)
-                .validate(statusCode: 200..<300)
-                .response { response in
-                    //debugPrint(response)
-                    switch response.result {
-                        case .success:
-                            //print("Request Successful")
-                            callback(.success(Void()))
-                        case let .failure(error):
-                            //print(error)
-                            callback(.failure(Failure()))
-                        }
-                }
+        socket.didOpenConnection = {
+            print("Connection opened")
+        }
+        
+        socket.didCloseConnection = {
+            // Connection closed
+        }
+        
+        return Effect.future { callback in
+            callback(.failure(Failure()))
         }
     },
     disconnect: {
-        //socket.disconnect()
+        socket.disconnect()
         
-        Effect.future { callback in
-            AF.request("\(api)/left", method: .post)
-                .validate(statusCode: 200..<300)
-                .response { response in
-                    //debugPrint(response)
-                    switch response.result {
-                        case .success:
-                            //print("Request Successful")
-                            callback(.success(Void()))
-                        case let .failure(error):
-                            //print(error)
-                            callback(.failure(Failure()))
-                        }
-                }
+        return Effect.future { callback in
+                callback(.failure(Failure()))
         }
     },
-    left: {
-        //socket.write(string: "angle: \(distance)")
-        Effect.future { callback in
-            AF.request("\(api)/left", method: .post)
-                .validate(statusCode: 200..<300)
-                .response { response in
-                    //debugPrint(response)
-                    switch response.result {
-                        case .success:
-                            //print("Request Successful")
-                            callback(.success(Void()))
-                        case let .failure(error):
-                            //print(error)
-                            callback(.failure(Failure()))
-                        }
-                }
+    angle: { normalizedAngle in
+        socket.send(message: "angle: \(NSString(format: "%.2f", normalizedAngle))")
+        
+        return Effect.future { callback in
+                callback(.failure(Failure()))
         }
     },
-    right: {
-        //socket.write(string: "speed: \(distance)")
-        Effect.future { (callback) in
-            AF.request("\(api)/right", method: .post)
-                .validate(statusCode: 200..<300)
-                .response { response in
-                    //debugPrint(response)
-                    switch response.result {
-                        case .success:
-                            //print("Request Successful")
-                            callback(.success(Void()))
-                        case let .failure(error):
-                            //print(error)
-                            callback(.failure(Failure()))
-                        }
-                }
+    speed: { normalizedSpeed in
+        socket.send(message: "speed: \(NSString(format: "%.2f", normalizedSpeed))")
+        
+        return Effect.future { callback in
+                callback(.failure(Failure()))
         }
     })
 }
