@@ -22,7 +22,7 @@ extension ApiClient {
         socket.establishConnection()
                 
         socket.didReceiveMessage = { message in
-            print(message)
+            //print(message)
         }
         
         socket.didReceiveError = { error in

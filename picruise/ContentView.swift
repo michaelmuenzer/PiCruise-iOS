@@ -59,10 +59,7 @@ let cruiseReducer = Reducer<CruiseState, CruiseAction, CruiseEnvironment> {
         return .none
         
     case let .navigateHorizontal(distance):
-        state.horizontalJoystick.navigationRequestInFlight = true
-        
-        //TODO: Normalize distance
-        var normalizedAngle = distance
+        var normalizedAngle = normalizeJoystickDistance(distance: distance)
         
         return environment.apiClient
             .angle(normalizedAngle)
@@ -71,19 +68,14 @@ let cruiseReducer = Reducer<CruiseState, CruiseAction, CruiseEnvironment> {
             .map(CruiseAction.navigateHorizontalResponse)
     
     case let .navigateHorizontalResponse(.success(response)):
-        state.horizontalJoystick.navigationRequestInFlight = false
         return .none
       
     case .navigateHorizontalResponse(.failure):
-        state.horizontalJoystick.navigationRequestInFlight = false
         //TODO: Implement UI element indicating that the server connection broke
         return .none
 
     case let .navigateVertical(distance):
-        state.verticalJoystick.navigationRequestInFlight = true
-            
-        //TODO: Normalize speed
-        var normalizedSpeed = distance
+        var normalizedSpeed = normalizeJoystickDistance(distance: distance)
     
         return environment.apiClient
             .speed(normalizedSpeed)
@@ -92,11 +84,9 @@ let cruiseReducer = Reducer<CruiseState, CruiseAction, CruiseEnvironment> {
             .map(CruiseAction.navigateVerticalResponse)
     
     case let .navigateVerticalResponse(.success(response)):
-        state.verticalJoystick.navigationRequestInFlight = false
         return .none
 
     case .navigateVerticalResponse(.failure):
-        state.verticalJoystick.navigationRequestInFlight = false
         //TODO: Implement UI element indicating that the server connection broke
         return .none
     }
@@ -111,7 +101,6 @@ enum Direction {
 struct JoystickState : Equatable{
     let direction: Direction
     var draggedOffset: CGFloat = .zero
-    var navigationRequestInFlight: Bool = false
 }
 
 struct DraggableModifier : ViewModifier {
@@ -160,13 +149,13 @@ struct DraggableModifier : ViewModifier {
 }
 
 // MARK: - UI
+let joystickRectangleLong: CGFloat = 200
+let joystickRectangleShort: CGFloat = 50
+
 struct ContentView: View {
     let store: Store<CruiseState, CruiseAction>
     
-    let joystickRectangleLong: CGFloat = 200
-    let joystickRectangleShort: CGFloat = 50
     let joystickPadding: CGFloat = 10
-    
     var joystickDiameter: CGFloat
     var joystickMaxDragDistance: CGFloat
     
@@ -224,6 +213,14 @@ struct ContentView: View {
             }
         }
     }
+}
+
+func normalizeJoystickDistance(distance: Float) -> Float{
+    var normalizedDistance = distance / (Float(joystickRectangleLong - joystickRectangleShort) / 2)
+    normalizedDistance = Float.maximum(-1.0, Float.minimum(1.0, normalizedDistance))
+    print(normalizedDistance)
+    
+    return normalizedDistance
 }
 
 // MARK: - UI Preview
