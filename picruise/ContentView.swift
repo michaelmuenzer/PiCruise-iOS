@@ -22,13 +22,10 @@ enum CruiseAction: Equatable {
     case connect
     case connectResponse(Result<Void, ApiClient.Failure>)
     
-    //TODO: Add disconnect
+    //TODO: Add disconnect + response
     
     case navigateHorizontal(Float)
-    case navigateHorizontalResponse(Result<Void, ApiClient.Failure>)
-    
     case navigateVertical(Float)
-    case navigateVerticalResponse(Result<Void, ApiClient.Failure>)
 }
 
 struct CruiseEnvironment {
@@ -62,29 +59,16 @@ let cruiseReducer = Reducer<CruiseState, CruiseAction, CruiseEnvironment> {
     case let .navigateHorizontal(distance):
         var normalizedAngle = normalizeJoystickDistance(distance: -distance)
         
-        environment.apiClient
+        return environment.apiClient
             .angle(normalizedAngle)
-            .receive(on: environment.mainQueue)
-            .catchToEffect()
-        return .none
-    
-    case let .navigateHorizontalResponse(.success(response)):
-        return .none
+            .fireAndForget()
 
     case let .navigateVertical(distance):
         var normalizedSpeed = normalizeJoystickDistance(distance: -distance)
         
-        environment.apiClient
+        return environment.apiClient
             .speed(normalizedSpeed)
-            .receive(on: environment.mainQueue)
-            .catchToEffect()
-        return .none
-    
-    case let .navigateVerticalResponse(.success(response)):
-        return .none
-
-    default:
-        return .none
+            .fireAndForget()
     }
 }
 
