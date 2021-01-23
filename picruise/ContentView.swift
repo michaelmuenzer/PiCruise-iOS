@@ -43,9 +43,7 @@ let cruiseReducer = Reducer<CruiseState, CruiseAction, CruiseEnvironment> {
         
         return environment.apiClient
             .connect()
-            .receive(on: environment.mainQueue)
-            .catchToEffect()
-            .map(CruiseAction.connectResponse)
+            .fireAndForget()
     
     case let .connectResponse(.success(response)):
         state.connectionRequestInFlight = false

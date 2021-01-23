@@ -5,10 +5,29 @@ import ComposableArchitecture
 let wsApi = "ws://raspberrypi.local:3002"
 
 struct ApiClient {
-    static let socket = WebSocketConnector(withSocketURL: URL(string: wsApi)!)
+    static var socket = WebSocketConnector(withSocketURL: URL(string: wsApi)!) {
+        didSet {
+            socket.didReceiveMessage = { message in
+                //print(message)
+            }
+            
+            socket.didReceiveError = { error in
+                print(error)
+            }
+            
+            socket.didOpenConnection = {
+                print("Connection opened")
+                //store.send(.connectResponse(.failure))
+            }
+            
+            socket.didCloseConnection = {
+                print("Connection closed")
+            }
+        }
+    }
     
-    var connect: () -> Effect<Void, Failure>
-    var disconnect: () -> Effect<Void, Failure>
+    var connect: () -> Effect<Never, Never>
+    var disconnect: () -> Effect<Never, Never>
     var angle: (_: Float) -> Effect<Never, Never>
     var speed: (_: Float) -> Effect<Never, Never>
 
@@ -20,33 +39,11 @@ extension ApiClient {
     static let live = ApiClient(
     connect: {
         socket.establishConnection()
-                
-        socket.didReceiveMessage = { message in
-            //print(message)
-        }
-        
-        socket.didReceiveError = { error in
-            //Handle error here
-        }
-        
-        socket.didOpenConnection = {
-            print("Connection opened")
-        }
-        
-        socket.didCloseConnection = {
-            // Connection closed
-        }
-        
-        return Effect.future { callback in
-            callback(.failure(Failure()))
-        }
+        return Effect.none
     },
     disconnect: {
         socket.disconnect()
-        
-        return Effect.future { callback in
-                callback(.failure(Failure()))
-        }
+        return Effect.none
     },
     angle: { normalizedAngle in
         socket.send(message: "angle: \(NSString(format: "%.2f", normalizedAngle))")
