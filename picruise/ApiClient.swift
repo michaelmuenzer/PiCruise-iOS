@@ -9,8 +9,8 @@ struct ApiClient {
     
     var connect: () -> Effect<Void, Failure>
     var disconnect: () -> Effect<Void, Failure>
-    var angle: (_: Float) -> Effect<Void, Failure>
-    var speed: (_: Float) -> Effect<Void, Failure>
+    var angle: (_: Float) -> Effect<Never, Never>
+    var speed: (_: Float) -> Effect<Never, Never>
 
     struct Failure: Error, Equatable {}
 }
@@ -50,16 +50,10 @@ extension ApiClient {
     },
     angle: { normalizedAngle in
         socket.send(message: "angle: \(NSString(format: "%.2f", normalizedAngle))")
-        
-        return Effect.future { callback in
-                callback(.failure(Failure()))
-        }
+        return Effect.none
     },
     speed: { normalizedSpeed in
         socket.send(message: "speed: \(NSString(format: "%.2f", normalizedSpeed))")
-        
-        return Effect.future { callback in
-                callback(.failure(Failure()))
-        }
+        return Effect.none
     })
 }

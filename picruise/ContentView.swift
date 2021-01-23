@@ -52,6 +52,7 @@ let cruiseReducer = Reducer<CruiseState, CruiseAction, CruiseEnvironment> {
     
     case let .connectResponse(.success(response)):
         state.connectionRequestInFlight = false
+        state.isConnected = true
         return .none
     
     case .connectResponse(.failure):
@@ -59,35 +60,30 @@ let cruiseReducer = Reducer<CruiseState, CruiseAction, CruiseEnvironment> {
         return .none
         
     case let .navigateHorizontal(distance):
-        var normalizedAngle = normalizeJoystickDistance(distance: distance)
+        var normalizedAngle = normalizeJoystickDistance(distance: -distance)
         
-        return environment.apiClient
+        environment.apiClient
             .angle(normalizedAngle)
             .receive(on: environment.mainQueue)
             .catchToEffect()
-            .map(CruiseAction.navigateHorizontalResponse)
+        return .none
     
     case let .navigateHorizontalResponse(.success(response)):
         return .none
-      
-    case .navigateHorizontalResponse(.failure):
-        //TODO: Implement UI element indicating that the server connection broke
-        return .none
 
     case let .navigateVertical(distance):
-        var normalizedSpeed = normalizeJoystickDistance(distance: distance)
-    
-        return environment.apiClient
+        var normalizedSpeed = normalizeJoystickDistance(distance: -distance)
+        
+        environment.apiClient
             .speed(normalizedSpeed)
             .receive(on: environment.mainQueue)
             .catchToEffect()
-            .map(CruiseAction.navigateVerticalResponse)
+        return .none
     
     case let .navigateVerticalResponse(.success(response)):
         return .none
 
-    case .navigateVerticalResponse(.failure):
-        //TODO: Implement UI element indicating that the server connection broke
+    default:
         return .none
     }
 }
