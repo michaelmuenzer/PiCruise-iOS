@@ -28,6 +28,7 @@ extension ApiClient {
 
             socket.didOpenConnection = {
                 print("Connection opened")
+                socket.send(message: "start")
                 subscriber.send(.init("success"))
             }
             
@@ -57,6 +58,7 @@ extension ApiClient {
                 subscriber.send(completion: .failure(error))
             }
             
+            socket.send(message: "stop")
             socket.disconnect()
             return AnyCancellable {}
         }
