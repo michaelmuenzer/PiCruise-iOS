@@ -4,7 +4,10 @@ import SwiftUI
 // MARK: - Domain
 struct CruiseState: Equatable {
     static func == (lhs: CruiseState, rhs: CruiseState) -> Bool {
-        return lhs.horizontalJoystick == rhs.horizontalJoystick && lhs.verticalJoystick == rhs.verticalJoystick
+        return lhs.horizontalJoystick == rhs.horizontalJoystick
+            && lhs.verticalJoystick == rhs.verticalJoystick
+            && lhs.isConnected == rhs.isConnected
+            && lhs.connectionRequestInFlight == rhs.connectionRequestInFlight
     }
     
     var horizontalJoystick: JoystickState
@@ -22,7 +25,8 @@ enum CruiseAction: Equatable {
     case connect
     case connectResponse(Result<String, Error>)
     
-    //TODO: Add disconnect + response
+    case disconnect
+    case disconnectResponse(Result<String, Error>)
     
     case navigateHorizontal(Float)
     case navigateVertical(Float)
@@ -54,6 +58,25 @@ let cruiseReducer = Reducer<CruiseState, CruiseAction, CruiseEnvironment> {
         return .none
     
     case .connectResponse(.failure):
+        state.connectionRequestInFlight = false
+        return .none
+    
+    case .disconnect:
+        state.connectionRequestInFlight = true
+        
+        return environment.apiClient
+            .disconnect()
+            .receive(on: environment.mainQueue)
+            //.mapError(CruiseAction.disconnectResponse(.failure))
+            .catchToEffect()
+            .map(CruiseAction.disconnectResponse)
+    
+    case .disconnectResponse(.success):
+        state.connectionRequestInFlight = false
+        state.isConnected = false
+        return .none
+    
+    case .disconnectResponse(.failure):
         state.connectionRequestInFlight = false
         return .none
         
@@ -157,7 +180,7 @@ struct ContentView: View {
                     .edgesIgnoringSafeArea(.all)
                 VStack(alignment: .center) {
                     HStack(alignment: .center) {
-                        Button(viewStore.isConnected ? "Disconnect" : "Connect") { viewStore.send(.connect) }
+                        Button(viewStore.isConnected ? "Disconnect" : "Connect") { viewStore.isConnected ? viewStore.send(.disconnect) : viewStore.send(.connect) }
                             .disabled(viewStore.connectionRequestInFlight)
                             .padding()
                         Text(viewStore.isConnected ? "Connected" : (viewStore.connectionRequestInFlight ? "Connecting..." : "Disconnected"))

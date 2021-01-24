@@ -18,7 +18,7 @@ struct ApiClient {
     }
     
     var connect: () -> Effect<String, Error>
-    var disconnect: () -> Effect<Never, Never>
+    var disconnect: () -> Effect<String, Error>
     var angle: (_: Float) -> Effect<Never, Never>
     var speed: (_: Float) -> Effect<Never, Never>
 
@@ -52,14 +52,16 @@ extension ApiClient {
     },
     disconnect: {
         Effect.run { subscriber in
+            guard socketUpdatesSubscribers[1] != nil
+            else { return AnyCancellable {} }
+            
             socket.didCloseConnection = {
                 print("Connection closed")
-                //TODO
+                subscriber.send(.init("success"))
             }
             socket.didReceiveError = { error in
                 print(error)
-                //TODO
-                //subscriber.send(completion: .failure(error))
+                subscriber.send(completion: .failure(error))
             }
             
             socket.disconnect()
