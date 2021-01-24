@@ -48,7 +48,6 @@ let cruiseReducer = Reducer<CruiseState, CruiseAction, CruiseEnvironment> {
         return environment.apiClient
             .connect()
             .receive(on: environment.mainQueue)
-            //.mapError(CruiseAction.connectResponse(.failure))
             .catchToEffect()
             .map(CruiseAction.connectResponse)
     
@@ -67,7 +66,6 @@ let cruiseReducer = Reducer<CruiseState, CruiseAction, CruiseEnvironment> {
         return environment.apiClient
             .disconnect()
             .receive(on: environment.mainQueue)
-            //.mapError(CruiseAction.disconnectResponse(.failure))
             .catchToEffect()
             .map(CruiseAction.disconnectResponse)
     

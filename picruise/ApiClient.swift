@@ -4,18 +4,10 @@ import Combine
 
 let wsApi = "ws://raspberrypi.local:3002"
 
-private var socketUpdatesSubscribers:
-  [AnyHashable: Effect<String, Error>.Subscriber] =
-    [:]
+private var socketUpdatesSubscriber: Effect<String, Error>.Subscriber?
 
 struct ApiClient {
-    static var socket = WebSocketConnector(withSocketURL: URL(string: wsApi)!) {
-        didSet {
-            socket.didReceiveMessage = { message in
-                print(message)
-            }
-        }
-    }
+    static var socket = WebSocketConnector(withSocketURL: URL(string: wsApi)!)
     
     var connect: () -> Effect<String, Error>
     var disconnect: () -> Effect<String, Error>
@@ -30,34 +22,35 @@ extension ApiClient {
     static let live = ApiClient(
     connect: {
         Effect.run { subscriber in
-            guard socketUpdatesSubscribers[1] == nil
-            else { return AnyCancellable {} }
-            
-            socketUpdatesSubscribers[1] = subscriber
+            if socketUpdatesSubscriber == nil {
+                socketUpdatesSubscriber = subscriber
+            }
+
             socket.didOpenConnection = {
                 print("Connection opened")
                 subscriber.send(.init("success"))
             }
+            
             socket.didReceiveError = { error in
                 print(error)
                 subscriber.send(completion: .failure(error))
             }
             
             socket.establishConnection()
-            
-            return AnyCancellable {
-                socket.disconnect()
-            }
+            return AnyCancellable {}
         }
     },
     disconnect: {
         Effect.run { subscriber in
-            guard socketUpdatesSubscribers[1] != nil
+            guard socketUpdatesSubscriber != nil
             else { return AnyCancellable {} }
-            
+
             socket.didCloseConnection = {
                 print("Connection closed")
                 subscriber.send(.init("success"))
+                
+                // Reset web-socket, connection established, but not connected
+                socket = WebSocketConnector(withSocketURL: URL(string: wsApi)!)
             }
             socket.didReceiveError = { error in
                 print(error)
@@ -65,7 +58,6 @@ extension ApiClient {
             }
             
             socket.disconnect()
-            
             return AnyCancellable {}
         }
     },
