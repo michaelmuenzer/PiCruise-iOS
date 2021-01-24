@@ -20,7 +20,7 @@ enum CruiseAction: Equatable {
     }
     
     case connect
-    case connectResponse(Result<Void, ApiClient.Failure>)
+    case connectResponse(Result<String, Error>)
     
     //TODO: Add disconnect + response
     
@@ -43,9 +43,12 @@ let cruiseReducer = Reducer<CruiseState, CruiseAction, CruiseEnvironment> {
         
         return environment.apiClient
             .connect()
-            .fireAndForget()
+            .receive(on: environment.mainQueue)
+            //.mapError(CruiseAction.connectResponse(.failure))
+            .catchToEffect()
+            .map(CruiseAction.connectResponse)
     
-    case let .connectResponse(.success(response)):
+    case .connectResponse(.success):
         state.connectionRequestInFlight = false
         state.isConnected = true
         return .none

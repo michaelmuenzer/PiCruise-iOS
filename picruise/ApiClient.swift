@@ -1,32 +1,23 @@
 import Foundation
-import Alamofire
 import ComposableArchitecture
+import Combine
 
 let wsApi = "ws://raspberrypi.local:3002"
+
+private var socketUpdatesSubscribers:
+  [AnyHashable: Effect<String, Error>.Subscriber] =
+    [:]
 
 struct ApiClient {
     static var socket = WebSocketConnector(withSocketURL: URL(string: wsApi)!) {
         didSet {
             socket.didReceiveMessage = { message in
-                //print(message)
-            }
-            
-            socket.didReceiveError = { error in
-                print(error)
-            }
-            
-            socket.didOpenConnection = {
-                print("Connection opened")
-                //store.send(.connectResponse(.failure))
-            }
-            
-            socket.didCloseConnection = {
-                print("Connection closed")
+                print(message)
             }
         }
     }
     
-    var connect: () -> Effect<Never, Never>
+    var connect: () -> Effect<String, Error>
     var disconnect: () -> Effect<Never, Never>
     var angle: (_: Float) -> Effect<Never, Never>
     var speed: (_: Float) -> Effect<Never, Never>
@@ -38,12 +29,43 @@ struct ApiClient {
 extension ApiClient {
     static let live = ApiClient(
     connect: {
-        socket.establishConnection()
-        return Effect.none
+        Effect.run { subscriber in
+            guard socketUpdatesSubscribers[1] == nil
+            else { return AnyCancellable {} }
+            
+            socketUpdatesSubscribers[1] = subscriber
+            socket.didOpenConnection = {
+                print("Connection opened")
+                subscriber.send(.init("success"))
+            }
+            socket.didReceiveError = { error in
+                print(error)
+                subscriber.send(completion: .failure(error))
+            }
+            
+            socket.establishConnection()
+            
+            return AnyCancellable {
+                socket.disconnect()
+            }
+        }
     },
     disconnect: {
-        socket.disconnect()
-        return Effect.none
+        Effect.run { subscriber in
+            socket.didCloseConnection = {
+                print("Connection closed")
+                //TODO
+            }
+            socket.didReceiveError = { error in
+                print(error)
+                //TODO
+                //subscriber.send(completion: .failure(error))
+            }
+            
+            socket.disconnect()
+            
+            return AnyCancellable {}
+        }
     },
     angle: { normalizedAngle in
         socket.send(message: "angle: \(NSString(format: "%.2f", normalizedAngle))")
