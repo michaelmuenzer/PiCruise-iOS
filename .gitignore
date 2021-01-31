@@ -9,6 +9,9 @@ xcuserdata/
 **/xcshareddata/WorkspaceSettings.xcsettings
 .build/
 
+## Project configuration
+Config.xcconfig
+
 ## Obj-C/Swift specific
 *.hmap
 
